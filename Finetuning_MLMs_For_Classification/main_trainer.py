@@ -5,8 +5,11 @@ from torch.nn import CrossEntropyLoss
 from transformers import AdamW, get_scheduler
 from tqdm import tqdm, trange
 from config import *
+import wandb
 
 set_random_seed(SEED)
+
+wandb.init(project="finetuning-mlms-for-classification")
 
 # Build Dataset
 
@@ -44,6 +47,8 @@ lr_scheduler = get_scheduler(
                     num_training_steps = NUM_TRAINING_STEPS
                 )
 
+wandb.watch(model)
+
 early_stopper = EarlyStopper(patience=EARLY_STOPPING_PATIENCE, min_delta=EARLY_STOPPING_MIN_DELTA)
 
 for epoch in trange(NUM_EPOCHS):
@@ -59,22 +64,22 @@ for epoch in trange(NUM_EPOCHS):
         optimizer.zero_grad()
 
     model.eval()
-    perform_eval(model = model, dataloader = train_dataloader, device = DEVICE,
+    perform_eval(model = model, split = 'train', dataloader = train_dataloader, device = DEVICE,
                 out_dim=OUT_DIMENSION, save_dir=TRAIN_EVALUATION_RESULTS_SAVE_DIR,
                 epoch=epoch, file_name = f"train_metrics", check_early_stopping=False,
-                early_stopper=None)
+                early_stopper=None, log_wandb=LOG_WANDB)
     
     model.eval()
-    perform_eval(model = model, dataloader = validation_dataloader, device = DEVICE,
+    perform_eval(model = model, split = 'validation', dataloader = validation_dataloader, device = DEVICE,
                 out_dim=OUT_DIMENSION, save_dir=VALIDATION_EVALUATION_RESULTS_SAVE_DIR,
                 epoch=epoch, file_name = f"validation_metrics", check_early_stopping=True,
-                early_stopper=early_stopper)
+                early_stopper=early_stopper, log_wandb=LOG_WANDB)
     
     model.eval()
-    perform_eval(model = model, dataloader = validation_dataloader, device = DEVICE,
+    perform_eval(model = model, split = 'test', dataloader = validation_dataloader, device = DEVICE,
                 out_dim=OUT_DIMENSION, save_dir=TEST_EVALUATION_RESULTS_SAVE_DIR,
                 epoch=epoch, file_name = f"test_metrics", check_early_stopping=False,
-                early_stopper=None)
+                early_stopper=None, log_wandb=LOG_WANDB)
 
 
         

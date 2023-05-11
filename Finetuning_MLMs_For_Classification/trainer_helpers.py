@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from datasets import Dataset, DatasetDict
 from transformers import DataCollatorWithPadding, AutoTokenizer
 from custom_ds import CustomDataset
+import wandb
 
 def set_random_seed(seed: int):
     """
@@ -51,7 +52,7 @@ class EarlyStopper:
                 return True
         return False
     
-def compute_metrics(predictions, true_labels):
+def compute_metrics(predictions, true_labels, split_name, epoch):
     """
     Helper function to compute metrics
     Args:
@@ -74,22 +75,23 @@ def compute_metrics(predictions, true_labels):
     class_wise_recall = recall_score(true_labels, predictions, average=None)
     class_wise_f1 = f1_score(true_labels, predictions, average=None)
     return {
-        'accuracy': accuracy,
-        'macro_precision': macro_precision,
-        'macro_recall': macro_recall,
-        'macro_f1': macro_f1,
-        'micro_precision': micro_precision,
-        'micro_recall': micro_recall,
-        'micro_f1': micro_f1,
-        'weighted_precision': weighted_precision,
-        'weighted_recall': weighted_recall,
-        'weighted_f1': weighted_f1,
-        'class_wise_precision': class_wise_precision,
-        'class_wise_recall': class_wise_recall,
-        'class_wise_f1': class_wise_f1
+        'epoch': epoch,
+        f'{split_name}_accuracy': accuracy,
+        f'{split_name}_macro_precision': macro_precision,
+        f'{split_name}_macro_recall': macro_recall,
+        f'{split_name}_macro_f1': macro_f1,
+        f'{split_name}_micro_precision': micro_precision,
+        f'{split_name}_micro_recall': micro_recall,
+        f'{split_name}_micro_f1': micro_f1,
+        f'{split_name}_weighted_precision': weighted_precision,
+        f'{split_name}_weighted_recall': weighted_recall,
+        f'{split_name}_weighted_f1': weighted_f1,
+        f'{split_name}_class_wise_precision': class_wise_precision,
+        f'{split_name}_class_wise_recall': class_wise_recall,
+        f'{split_name}_class_wise_f1': class_wise_f1
     }
 
-def perform_eval(model, dataloader, device, out_dim, save_dir, epoch, file_name, check_early_stopping=False, early_stopper=None):
+def perform_eval(model, split, dataloader, device, out_dim, save_dir, epoch, file_name, check_early_stopping=False, early_stopper=None, log_wandb=True):
     model.eval()
     with torch.no_grad():
         predictions = []
@@ -109,9 +111,13 @@ def perform_eval(model, dataloader, device, out_dim, save_dir, epoch, file_name,
             for prediction_probability, expected_output_probability in zip(outputs, expected_outputs):
                 prediction_probabilities.append(prediction_probability)
                 label_probabilities.append(expected_output_probability)
-        metrics = compute_metrics(predictions, labels)
+        metrics = compute_metrics(predictions, labels, split, epoch)
         loss = CrossEntropyLoss()(torch.stack(prediction_probabilities), torch.stack(label_probabilities))
         metrics['loss'] = loss.item()
+
+        if log_wandb:
+            wandb.log(metrics)
+
         # Save validation metrics
         with open(os.path.join(save_dir, f"{file_name}_epoch_{epoch}.json"), 'w') as f:
             json.dump(metrics, f)

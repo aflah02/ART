@@ -34,6 +34,7 @@ TRUNCATION = True
 SEED = 42
 EARLY_STOPPING_PATIENCE = 3
 EARLY_STOPPING_MIN_DELTA = 0
+LOG_WANDB = True
 
 # Neural Network Architecture
 LS_ACTIVATIONS = [nn.ReLU(), nn.ReLU()]
