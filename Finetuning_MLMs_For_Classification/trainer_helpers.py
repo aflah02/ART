@@ -167,6 +167,10 @@ def data_preproc_and_setup(train_dataset, validation_dataset, test_dataset, MODE
 
     return train_dataloader, validation_dataloader, test_dataloader, data_collator
 
+def log_status_to_txt_file(save_path, status):
+    with open(save_path, 'a') as f:
+        f.write(status + '\n')
+
 if __name__ == "__main__":
     true_labels = [0, 1, 2, 0, 1, 2]
     predictions = [0, 2, 1, 0, 0, 1]
